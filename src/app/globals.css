@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0B0F17;
+  --foreground: #F9FAFB;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 25s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Smooth Dynamic Color Cycling Glow */
+@keyframes neonHueShift {
+  0% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 25px rgba(16, 185, 129, 0.6));
+  }
+  33% {
+    filter: hue-rotate(45deg) drop-shadow(0 0 30px rgba(6, 182, 212, 0.6));
+  }
+  66% {
+    filter: hue-rotate(90deg) drop-shadow(0 0 30px rgba(59, 130, 246, 0.6));
+  }
+  100% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 25px rgba(16, 185, 129, 0.6));
+  }
+}
+
+@keyframes gradientPan {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-color-glow {
+  background-size: 250% 250%;
+  animation: gradientPan 6s ease-in-out infinite, neonHueShift 8s ease-in-out infinite;
+}
