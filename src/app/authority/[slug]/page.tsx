@@ -2,35 +2,32 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AccordionFaq, FaqItem } from '@/components/ui/AccordionFaq';
+import { getLocalAuthorityBySlug } from '@/lib/db/queries';
 import { 
   MapPin, ShieldCheck, AlertTriangle, ArrowRight,
-  Building2, Utensils, Pizza, Beer, Baby, Building, PhoneCall, Mail, ArrowLeft, Navigation, ClipboardCheck
+  Building2, Utensils, Pizza, Beer, Baby, Building, PhoneCall, Mail, ArrowLeft, Navigation, ClipboardCheck, Clock
 } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const revalidate = 86400; // ISR: 24 hours
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const councilName = slug.charAt(0).toUpperCase() + slug.slice(1);
+  const { authority, stats } = await getLocalAuthorityBySlug(slug);
+  const councilName = authority?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
 
   return {
     title: `Food Hygiene Ratings in ${councilName} (2026 Inspection Reports & 0-Star List)`,
-    description: `Search official food hygiene inspection ratings for restaurants, takeaways, and cafes in ${councilName}. Check 5-star clean places, failed 0-star watchlist, and council food safety scores.`,
-    keywords: [
-      `food hygiene ratings ${councilName}`,
-      `${councilName} council hygiene scores`,
-      `cleanest takeaways in ${councilName}`,
-      `${councilName} 0 star restaurants`,
-      `scores on the doors ${councilName}`,
-    ],
+    description: `Search official food hygiene inspection ratings for ${stats.total.toLocaleString()} restaurants, takeaways, and cafes in ${councilName}. Check 5-star clean places, failed 0-star watchlist, and council pass rates.`,
     alternates: {
       canonical: `https://hygienecheck.uk/authority/${slug}`,
     },
     openGraph: {
-      title: `Food Hygiene Ratings in ${councilName} Council`,
-      description: `Official inspection scores, pass rates, and clean dining guide for ${councilName}.`,
+      title: `Food Hygiene Ratings in ${councilName}`,
+      description: `Official inspection scores, pass rates (${stats.passRate}%), and clean dining guide for ${councilName}.`,
       url: `https://hygienecheck.uk/authority/${slug}`,
       siteName: 'HygieneCheck.uk',
       locale: 'en_GB',
@@ -46,66 +43,41 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function AuthorityPage({ params }: PageProps) {
   const { slug } = await params;
-  const councilName = slug.charAt(0).toUpperCase() + slug.slice(1);
+  const { authority, stats, sampleVenues, zeroStarVenues } = await getLocalAuthorityBySlug(slug);
+  const councilName = authority?.name || `${slug.charAt(0).toUpperCase() + slug.slice(1)} Council`;
 
-  // Authority Data Model Representation
-  const council = {
-    name: `${councilName} Council`,
-    slug: slug,
-    totalVenues: '5,722',
-    passRate: '88.4%',
-    avgScore: '4.7 / 5',
-    officerEmail: `foodsafety@${slug}.gov.uk`,
-    officerPhone: '020 7641 6000',
-    topRatedPlaces: [
-      { name: `${councilName} Grand Brasserie`, score: 5, type: 'Restaurant', address: `12 High Street, ${councilName}`, postcode: 'WC2E 8PB', slug: `${slug}-grand-brasserie-wc2e-8pb-109841`, inspected: '18 Aug 2026' },
-      { name: `The Spice Pavilion ${councilName}`, score: 5, type: 'Takeaway', address: `45 Station Road, ${councilName}`, postcode: 'W1D 3QB', slug: `the-spice-pavilion-${slug}-w1d-3qb-109842`, inspected: '14 Aug 2026' },
-      { name: `Royal Dragon Buffet`, score: 5, type: 'Restaurant', address: `88 Market Square, ${councilName}`, postcode: 'SW1A 1AA', slug: `royal-dragon-buffet-${slug}-sw1a-1aa-109843`, inspected: '10 Aug 2026' },
-      { name: `Crown & Anchor Gastro Pub`, score: 5, type: 'Pub/Bar', address: `14 Neal Street, ${councilName}`, postcode: 'WC2H 9PR', slug: `crown-and-anchor-${slug}-wc2h-9pr-109844`, inspected: '05 Aug 2026' },
-    ],
-    categories: [
-      { name: 'Takeaways & Fast Food', count: '1,240 places', avg: '4.4 Avg', icon: Pizza, color: 'text-amber-400' },
-      { name: 'Restaurants & Cafes', count: '2,890 places', avg: '4.8 Avg', icon: Utensils, color: 'text-emerald-400' },
-      { name: 'Pubs, Bars & Nightclubs', count: '680 places', avg: '4.6 Avg', icon: Beer, color: 'text-yellow-400' },
-      { name: 'Schools & Day Nurseries', count: '420 places', avg: '4.9 Avg', icon: Baby, color: 'text-cyan-400' },
-      { name: 'Care Homes & Hospitals', count: '310 places', avg: '4.9 Avg', icon: Building, color: 'text-teal-400' },
-    ],
-    outcodes: [
-      { code: 'WC2', name: 'Covent Garden & Holborn', count: '890 places' },
-      { code: 'W1', name: 'Mayfair, Soho & Marylebone', count: '1,420 places' },
-      { code: 'SW1', name: 'Westminster, Victoria & Pimlico', count: '1,150 places' },
-      { code: 'NW1', name: 'Regent’s Park & Marylebone North', count: '640 places' },
-    ],
-  };
+  const totalVenuesCount = stats.total > 0 ? stats.total.toLocaleString() : (authority?.totalVenues?.toLocaleString() || '1,200+');
+  const passRateText = `${stats.passRate}%`;
+  const officerEmail = authority?.email || `foodsafety@${slug}.gov.uk`;
+  const officerPhone = authority?.phone || '020 7641 6000';
 
   const councilFaqs: FaqItem[] = [
     {
-      q: `How do food hygiene inspections work in ${council.name}?`,
-      a: `Environmental Health Officers from ${council.name} carry out unannounced inspection visits to restaurants, takeaways, cafes, and care homes. They inspect food preparation methods, building cleanliness, temperature logs, and staff hygiene training.`,
+      q: `How do food hygiene inspections work in ${councilName}?`,
+      a: `Environmental Health Officers from ${councilName} carry out unannounced inspection visits to restaurants, takeaways, cafes, and care homes. They inspect food preparation methods, building cleanliness, temperature logs, and staff hygiene training.`,
     },
     {
-      q: `What is the average food hygiene rating in ${councilName}?`,
-      a: `The average food hygiene score across ${council.totalVenues} active food premises in ${councilName} is ${council.avgScore}, with ${council.passRate} of businesses achieving a clean 4 or 5 star rating.`,
+      q: `What is the food hygiene pass rate in ${councilName}?`,
+      a: `Across ${totalVenuesCount} active food premises in ${councilName}, ${passRateText} of businesses have achieved a clean 4 or 5 star rating (or Pass in Scotland).`,
     },
     {
-      q: `How can I report a dirty restaurant or food poisoning in ${councilName}?`,
-      a: `You can report suspected food poisoning or unsafe hygiene practices directly to the ${council.name} Environmental Health Department by emailing ${council.officerEmail} or calling ${council.officerPhone}.`,
+      q: `How can I report a dirty restaurant or food problem in ${councilName}?`,
+      a: `You can report suspected hygiene issues directly to the ${councilName} Environmental Health Department by contacting your local council office or via the official Food Standards Agency portal.`,
     },
     {
       q: `Where can I see the list of failed food places in ${councilName}?`,
-      a: `You can view the full public health warning list of 0 and 1 star food establishments in this borough by visiting the ${councilName} 0-Star Watchlist above.`,
+      a: `You can view the full public health warning list of 0 and 1 star food establishments in this borough by visiting the ${councilName} 0-Star Watchlist below.`,
     },
   ];
 
   const authoritySchema = {
     '@context': 'https://schema.org',
     '@type': 'GovernmentService',
-    name: `${council.name} Food Hygiene Inspection Service`,
+    name: `${councilName} Food Hygiene Inspection Service`,
     serviceType: 'Food Safety and Hygiene Inspections',
     provider: {
       '@type': 'GovernmentOrganization',
-      name: council.name,
-      email: council.officerEmail,
+      name: councilName,
     },
     areaServed: {
       '@type': 'AdministrativeArea',
@@ -132,7 +104,7 @@ export default async function AuthorityPage({ params }: PageProps) {
       {
         '@type': 'ListItem',
         position: 3,
-        name: `${councilName} Council`,
+        name: councilName,
         item: `https://hygienecheck.uk/authority/${slug}`,
       },
     ],
@@ -140,7 +112,6 @@ export default async function AuthorityPage({ params }: PageProps) {
 
   return (
     <div className="py-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      
       {/* JSON-LD Schema */}
       <script
         type="application/ld+json"
@@ -161,7 +132,7 @@ export default async function AuthorityPage({ params }: PageProps) {
           Local Authorities
         </Link>
         <span>/</span>
-        <span className="text-gray-200 font-semibold">{council.name}</span>
+        <span className="text-gray-200 font-semibold">{councilName}</span>
       </nav>
 
       {/* Header Banner & Stats Snapshot */}
@@ -178,210 +149,137 @@ export default async function AuthorityPage({ params }: PageProps) {
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Food Hygiene Ratings in {council.name}
+              Food Hygiene Ratings in {councilName}
             </h1>
 
             <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">
-              Official food hygiene inspection ratings for all restaurants, takeaways, cafes, and care homes inspected by Environmental Health Officers in <strong>{council.name}</strong>. Updated daily from official Food Standards Agency public records.
+              Official food hygiene inspection ratings for all restaurants, takeaways, cafes, and care homes inspected by Environmental Health Officers in <strong>{councilName}</strong>. Synchronized with official Food Standards Agency records.
             </p>
-
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 pt-1 font-mono">
-              <span className="flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-emerald-400" /> {council.officerEmail}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1.5">
-                <PhoneCall className="w-3.5 h-3.5 text-cyan-400" /> {council.officerPhone}
-              </span>
-            </div>
           </div>
 
           {/* Quick Metrics Badge */}
           <div className="grid grid-cols-2 gap-3 sm:min-w-[260px]">
             <div className="p-4 rounded-2xl bg-gray-950/80 border border-gray-800 text-center">
-              <div className="text-2xl font-black text-white font-mono">{council.totalVenues}</div>
+              <div className="text-2xl font-black text-white font-mono">{totalVenuesCount}</div>
               <div className="text-[11px] text-gray-400 mt-1">Tracked Venues</div>
             </div>
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-              <div className="text-2xl font-black text-emerald-400 font-mono">{council.passRate}</div>
+              <div className="text-2xl font-black text-emerald-400 font-mono">{passRateText}</div>
               <div className="text-[11px] text-emerald-300/80 mt-1">Pass Rate (4-5★)</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* EXECUTIVE COUNCIL SUMMARY AT A GLANCE */}
-      <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-[#0F172A] via-gray-900 to-[#0F172A] border border-emerald-500/30 mb-8 shadow-lg">
-        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold mb-3">
-          <ClipboardCheck className="w-4 h-4" /> {councilName} Hygiene Overview & Key Facts
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800">
-            <div className="text-gray-400 text-[11px]">Total Active Venues</div>
-            <div className="text-white font-bold text-sm mt-0.5">{council.totalVenues} Places</div>
-            <div className="text-emerald-400 text-[10px] mt-0.5">Across all food sectors</div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800">
-            <div className="text-gray-400 text-[11px]">Clean Pass Rate</div>
-            <div className="text-white font-bold text-sm mt-0.5">{council.passRate} (4-5★)</div>
-            <div className="text-emerald-400 text-[10px] mt-0.5">High safety standard</div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800">
-            <div className="text-gray-400 text-[11px]">Average Score</div>
-            <div className="text-white font-bold text-sm mt-0.5">{council.avgScore}</div>
-            <div className="text-cyan-400 text-[10px] mt-0.5">Borough-wide average</div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800">
-            <div className="text-gray-400 text-[11px]">EHO Department</div>
-            <div className="text-white font-bold text-sm mt-0.5 truncate">{council.name}</div>
-            <div className="text-gray-400 text-[10px] mt-0.5 font-mono">{council.officerPhone}</div>
-          </div>
-        </div>
-        <p className="text-xs text-gray-300 mt-4 leading-relaxed border-t border-gray-800/80 pt-3">
-          <strong>Council Summary:</strong> Food premises in {councilName} demonstrate strong hygiene compliance, with over {council.passRate} of inspected kitchens achieving a Good or Very Good rating. Consumers can browse local ratings by business category or outer postcode area below.
-        </p>
-      </div>
-
-      {/* Direct Warning Watchlist Callout Card */}
+      {/* Watchlist Callout Card */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-red-950/40 via-gray-900/90 to-red-950/40 border border-red-500/30 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">
-              {councilName} 0 & 1 Star Public Health Watchlist
+            <h3 className="text-sm sm:text-base font-bold text-white">
+              {councilName} 0-Star & Failed Restaurant Watchlist
             </h3>
             <p className="text-xs text-gray-300 mt-0.5">
-              Check the list of food places in {councilName} that recently failed inspection and were given urgent improvement notices.
+              Browse food businesses that received a 0 or 1 star rating requiring urgent hygiene improvements.
             </p>
           </div>
         </div>
         <Link
           href={`/authority/${slug}/0-star`}
-          className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/20 transition-all flex items-center gap-1.5 min-h-[44px]"
+          className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs flex items-center gap-1.5 flex-shrink-0 transition-all shadow-lg shadow-red-950/40 min-h-[44px]"
         >
           <span>View 0-Star List</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      {/* Category Breakdown in this Council */}
-      <section className="mb-8">
-        <div className="mb-6">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-            Council Category Breakdown
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1">
-            Food Hygiene by Business Type in {councilName}
+      {/* Recently Inspected Venues Grid */}
+      <div className="space-y-4 mb-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Utensils className="w-5 h-5 text-emerald-400" />
+            Recently Inspected Places in {councilName}
           </h2>
+          <span className="text-xs text-gray-400 font-mono">Live FSA Database</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {council.categories.map((cat, idx) => {
-            const Icon = cat.icon;
+          {sampleVenues.map((venue) => {
+            const is5 = venue.ratingValue === '5';
+            const isFailed = venue.ratingValue === '0' || venue.ratingValue === '1' || venue.ratingValue === 'Improvement Required';
+
             return (
-              <div key={idx} className="p-5 rounded-2xl bg-gray-900/70 border border-gray-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-xl bg-gray-950 border border-gray-800 ${cat.color}`}>
-                    <Icon className="w-5 h-5" />
+              <Link
+                key={venue.id}
+                href={`/hygiene-rating/${venue.slug}`}
+                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between group ${
+                  isFailed
+                    ? 'bg-red-950/20 border-red-500/30 hover:border-red-400'
+                    : is5
+                    ? 'bg-gray-900/80 border-emerald-500/30 hover:border-emerald-400 hover:bg-gray-850'
+                    : 'bg-gray-900/60 border-gray-800 hover:border-gray-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span
+                      className={`px-2.5 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                        is5
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : isFailed
+                          ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                          : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                      }`}
+                    >
+                      {venue.schemeType === 'FHIS'
+                        ? `FHIS: ${venue.ratingValue || 'Awaiting'}`
+                        : `RATING ${venue.ratingValue || 'AWAITING'}`}
+                    </span>
+                    {venue.ratingDate && (
+                      <span className="text-[11px] font-mono text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        {venue.ratingDate}
+                      </span>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white">{cat.name}</h3>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{cat.count}</p>
+
+                  <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">
+                    {venue.businessName}
+                  </h3>
+
+                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span className="truncate">
+                      {[venue.addressLine1, venue.postcode].filter(Boolean).join(', ')}
+                    </span>
                   </div>
+
+                  {venue.businessTypeLabel && (
+                    <div className="text-[11px] font-mono text-gray-400 mt-1">
+                      {venue.businessTypeLabel}
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                  {cat.avg}
-                </span>
-              </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between text-[11px] font-semibold text-emerald-400">
+                  <span>View Inspection Report</span>
+                  <ArrowRight className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
             );
           })}
         </div>
-      </section>
-
-      {/* Top 5-Star Clean Dining Leaderboard */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-              ⭐ Clean Dining Leaderboard
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1">
-              Top Rated 5-Star Venues in {councilName}
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {council.topRatedPlaces.map((venue, idx) => (
-            <Link
-              key={idx}
-              href={`/hygiene-rating/${venue.slug}`}
-              className="p-5 rounded-2xl bg-[#0F172A]/80 border border-emerald-500/30 hover:border-emerald-400 hover:bg-gray-900 transition-all group flex flex-col justify-between min-h-[48px]"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    RATING 5 (VERY GOOD)
-                  </span>
-                  <span className="text-[11px] font-mono text-gray-400">Inspected {venue.inspected}</span>
-                </div>
-                <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors">
-                  {venue.name}
-                </h3>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span>{venue.address}</span>
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between text-xs font-semibold text-emerald-400">
-                <span>View Full Sub-Scores & History</span>
-                <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Hyperlocal Neighbourhoods / Outcodes in this Council */}
-      <section className="mb-8">
-        <div className="mb-6">
-          <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold flex items-center gap-1.5">
-            <Navigation className="w-3.5 h-3.5" /> Outcode Silos
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1">
-            Browse {councilName} by Postcode Area
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {council.outcodes.map((item) => (
-            <Link
-              key={item.code}
-              href={`/postcode/${item.code.toLowerCase()}`}
-              className="p-4 rounded-xl bg-gray-900/60 border border-gray-800 hover:border-emerald-500/50 hover:bg-gray-850 transition-all group min-h-[44px]"
-            >
-              <div className="text-base font-extrabold font-mono text-emerald-400 group-hover:text-white transition-colors">
-                {item.code}
-              </div>
-              <div className="text-xs font-semibold text-gray-200 mt-0.5 truncate">{item.name}</div>
-              <div className="text-[11px] font-mono text-gray-400 mt-1">{item.count}</div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Animated Accordion FAQ Section */}
-      <div className="border-t border-gray-800/60 pt-4">
-        <AccordionFaq
-          title={`Food Hygiene FAQs for ${council.name}`}
-          subtitle={`Common questions about restaurant inspections, reporting issues, and ratings in ${councilName}.`}
-          badge={`${councilName} Council FAQs`}
-          items={councilFaqs}
-        />
       </div>
 
+      {/* FAQ Section */}
+      <AccordionFaq
+        title={`Frequently Asked Questions for ${councilName}`}
+        subtitle={`Everything you need to know about official food hygiene inspections in ${councilName}.`}
+        badge="Council FAQs"
+        items={councilFaqs}
+      />
     </div>
   );
 }

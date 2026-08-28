@@ -6,14 +6,21 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        disallow: [
+          '/api/',
+          '/*?q=',
+          '/*?*q=',
+          '/*?page=',
+          '/*?sort=',
+          '/*?filter=',
+        ],
       },
       {
         userAgent: ['Googlebot', 'Bingbot'],
         allow: '/',
+        disallow: ['/api/'],
       },
     ],
     sitemap: 'https://hygienecheck.uk/sitemap.xml',
-    host: 'https://hygienecheck.uk',
   };
 }

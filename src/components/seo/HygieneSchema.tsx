@@ -4,6 +4,7 @@ interface SchemaProps {
   businessName: string;
   ratingValue: string;
   ratingDate: string;
+  businessType?: string;
   address: {
     street: string;
     city: string;
@@ -14,25 +15,35 @@ interface SchemaProps {
     lng: number;
   };
   slug: string;
+  telephone?: string;
 }
 
 export const HygieneSchema: React.FC<SchemaProps> = ({
   businessName,
   ratingValue,
   ratingDate,
+  businessType,
   address,
   geo,
   slug,
+  telephone,
 }) => {
-  const schemaData = {
+  const isNumeric = ratingValue && /^[0-5]$/.test(ratingValue.trim());
+  const ratingDisplay = isNumeric ? `${ratingValue.trim()} out of 5` : ratingValue;
+  const canonicalUrl = `https://hygienecheck.uk/hygiene-rating/${slug}`;
+
+  const schemaData: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'FoodEstablishment',
-    '@id': `https://hygienecheck.uk/hygiene-rating/${slug}#establishment`,
+    '@id': `${canonicalUrl}#establishment`,
     name: businessName,
+    url: canonicalUrl,
+    ...(businessType && { servesCuisine: businessType }),
+    ...(telephone && { telephone }),
     hasMap: `https://maps.google.com/?q=${geo.lat},${geo.lng}`,
     address: {
       '@type': 'PostalAddress',
-      streetAddress: address.street,
+      streetAddress: address.street || address.city,
       addressLocality: address.city,
       postalCode: address.postcode,
       addressCountry: 'GB',
@@ -42,23 +53,22 @@ export const HygieneSchema: React.FC<SchemaProps> = ({
       latitude: geo.lat,
       longitude: geo.lng,
     },
-    ...(ratingValue && /^[0-5]$/.test(ratingValue.trim())
-      ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: ratingValue.trim(),
-            bestRating: '5',
-            worstRating: '0',
-            ratingCount: '1',
-            reviewCount: '1',
-          },
-        }
-      : {}),
+    hasCertification: {
+      '@type': 'Certification',
+      name: 'Food Standards Agency Food Hygiene Rating',
+      issuedBy: {
+        '@type': 'GovernmentOrganization',
+        name: 'Food Standards Agency',
+        url: 'https://www.food.gov.uk',
+      },
+      certificationIdentification: ratingValue,
+      auditDate: ratingDate,
+    },
     additionalProperty: [
       {
         '@type': 'PropertyValue',
-        name: 'Food Standards Agency Hygiene Score',
-        value: `${ratingValue} out of 5`,
+        name: 'Official Food Hygiene Rating',
+        value: ratingDisplay,
       },
       {
         '@type': 'PropertyValue',

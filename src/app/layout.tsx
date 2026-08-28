@@ -101,7 +101,7 @@ export default function RootLayout({
           '@type': 'SearchAction',
           target: {
             '@type': 'EntryPoint',
-            urlTemplate: 'https://hygienecheck.uk/authority/london?q={search_term_string}',
+            urlTemplate: 'https://hygienecheck.uk/search?q={search_term_string}',
           },
           'query-input': 'required name=search_term_string',
         },

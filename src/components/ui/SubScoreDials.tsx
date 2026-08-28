@@ -71,7 +71,7 @@ export const SubScoreDials: React.FC<SubScoreProps> = ({
 
             <div className="flex items-center gap-4 my-3">
               {/* Circular SVG Gauge */}
-              <div className="relative w-16 h-16 flex-shrink-0">
+              <div className="relative w-16 h-16 flex-shrink-0 aspect-square">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
                   <circle
                     cx="40"

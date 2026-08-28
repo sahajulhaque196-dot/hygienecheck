@@ -24,7 +24,7 @@ export const LiveRadarTicker = () => {
           <div className="inline-flex gap-8 animate-marquee">
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>🇬🇧 <strong>524,190</strong> UK establishments actively monitored</span>
+              <span>🇬🇧 <strong>612,154</strong> UK establishments actively monitored</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -45,7 +45,7 @@ export const LiveRadarTicker = () => {
             {/* Duplicated for seamless continuous marquee loop */}
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>🇬🇧 <strong>524,190</strong> UK establishments actively monitored</span>
+              <span>🇬🇧 <strong>612,154</strong> UK establishments actively monitored</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />

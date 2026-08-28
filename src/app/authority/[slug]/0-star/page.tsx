@@ -2,35 +2,32 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AccordionFaq, FaqItem } from '@/components/ui/AccordionFaq';
+import { getLocalAuthorityBySlug } from '@/lib/db/queries';
 import { 
   AlertTriangle, ShieldAlert, MapPin, ArrowRight, ArrowLeft, 
-  Info, RefreshCw, ClipboardCheck
+  Info, RefreshCw, ClipboardCheck, ShieldCheck, CheckCircle2, Clock
 } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const revalidate = 86400; // ISR: 24 hours
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const councilName = slug.charAt(0).toUpperCase() + slug.slice(1);
+  const { authority, zeroStarVenues } = await getLocalAuthorityBySlug(slug);
+  const councilName = authority?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
 
   return {
     title: `${councilName} 0 & 1 Star Food Hygiene Watchlist (2026 Urgent Improvement Notices)`,
-    description: `Official public health watchlist for ${councilName}. List of restaurants, takeaways, and food businesses issued 0 or 1 star food hygiene ratings by ${councilName} Council. View inspection dates, failure reasons, and officer notes.`,
-    keywords: [
-      `${councilName} 0 star food hygiene list`,
-      `${councilName} failed food inspections`,
-      `${councilName} 1 star takeaways`,
-      `dirty restaurants in ${councilName}`,
-      `urgent improvement notices ${councilName}`,
-    ],
+    description: `Official public health watchlist for ${councilName}. List of restaurants, takeaways, and food businesses issued 0 or 1 star food hygiene ratings (${zeroStarVenues.length} active notices). View inspection dates and officer findings.`,
     alternates: {
       canonical: `https://hygienecheck.uk/authority/${slug}/0-star`,
     },
     openGraph: {
       title: `${councilName} 0 & 1 Star Food Hygiene Watchlist`,
-      description: `Official list of failed food hygiene inspections in ${councilName} Council.`,
+      description: `Official list of failed food hygiene inspections in ${councilName}.`,
       url: `https://hygienecheck.uk/authority/${slug}/0-star`,
       siteName: 'HygieneCheck.uk',
       locale: 'en_GB',
@@ -46,53 +43,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ZeroStarWatchlistPage({ params }: PageProps) {
   const { slug } = await params;
-  const councilName = slug.charAt(0).toUpperCase() + slug.slice(1);
-
-  // Real FSA Failed / Urgent Improvement Sample Data for this Council
-  const failedVenues = [
-    {
-      name: "Al Sulaymaniyah Restaurant",
-      rating: 1,
-      ratingText: "Major Improvement Necessary",
-      type: "Restaurant/Cafe",
-      address: "360 Edgware Road, London",
-      postcode: "W2 1EB",
-      date: "29 June 2026",
-      failureReason: "Poor kitchen cleanliness & inadequate food safety management paperwork.",
-      hygieneScore: 10,
-      structuralScore: 20,
-      managementScore: 20,
-      slug: "al-sulaymaniyah-w2-1eb-1898885",
-    },
-    {
-      name: "Grand Spice Balti & Grill",
-      rating: 0,
-      ratingText: "Urgent Improvement Required",
-      type: "Takeaway",
-      address: "84 Station Road, London",
-      postcode: "NW1 8TR",
-      date: "14 July 2026",
-      failureReason: "Urgent pest proofing required and raw food stored without temperature control.",
-      hygieneScore: 20,
-      structuralScore: 20,
-      managementScore: 25,
-      slug: "grand-spice-nw1-8tr-1928412",
-    },
-    {
-      name: "Golden Ocean Express",
-      rating: 1,
-      ratingText: "Major Improvement Necessary",
-      type: "Takeaway",
-      address: "19 Queensway, London",
-      postcode: "W2 4QJ",
-      date: "02 May 2026",
-      failureReason: "Hand-washing sink had no hot running water; staff food hygiene training expired.",
-      hygieneScore: 15,
-      structuralScore: 15,
-      managementScore: 15,
-      slug: "golden-ocean-w2-4qj-1837192",
-    },
-  ];
+  const { authority, zeroStarVenues } = await getLocalAuthorityBySlug(slug);
+  const councilName = authority?.name || `${slug.charAt(0).toUpperCase() + slug.slice(1)} Council`;
 
   const watchlistFaqs: FaqItem[] = [
     {
@@ -101,11 +53,11 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
     },
     {
       q: `What should I do if I became ill after eating at a venue on this list?`,
-      a: `Contact your GP for medical advice and report the incident to ${councilName} Council's Environmental Health team. Keep any food delivery receipts or leftover packaging as evidence for inspectors.`,
+      a: `Contact your GP for medical advice and report the incident to ${councilName}'s Environmental Health team. Keep any food delivery receipts or packaging as evidence for inspectors.`,
     },
     {
       q: `How do restaurants get removed from the 0-Star Watchlist?`,
-      a: `Once a food business resolves all structural and hygiene failures, they can apply for an official paid re-inspection from the local council. If they pass, their new score will be updated on the FSA database and removed from this warning list.`,
+      a: `Once a food business resolves all structural and hygiene failures, they can apply for an official paid re-inspection from the local council. If they pass, their new score will be updated on the FSA database and automatically removed from this warning list.`,
     },
   ];
 
@@ -113,17 +65,17 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: `${councilName} 0 & 1 Star Food Hygiene Watchlist`,
-    description: `Official public record of food establishments issued 0 or 1 star ratings by ${councilName} Council.`,
-    itemListElement: failedVenues.map((venue, idx) => ({
+    description: `Official public record of food establishments issued 0 or 1 star ratings in ${councilName}.`,
+    itemListElement: zeroStarVenues.map((venue, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
       item: {
         '@type': 'FoodEstablishment',
-        name: venue.name,
+        name: venue.businessName,
         address: {
           '@type': 'PostalAddress',
-          streetAddress: venue.address,
-          postalCode: venue.postcode,
+          streetAddress: venue.addressLine1 || councilName,
+          postalCode: venue.postcode || '',
           addressLocality: councilName,
         },
       },
@@ -143,7 +95,7 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
       {
         '@type': 'ListItem',
         position: 2,
-        name: `${councilName} Council`,
+        name: councilName,
         item: `https://hygienecheck.uk/authority/${slug}`,
       },
       {
@@ -157,7 +109,6 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
 
   return (
     <div className="py-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      
       {/* Schema.org Structured Data */}
       <script
         type="application/ld+json"
@@ -175,7 +126,7 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
         </Link>
         <span>/</span>
         <Link href={`/authority/${slug}`} className="hover:text-emerald-400">
-          {councilName} Council
+          {councilName}
         </Link>
         <span>/</span>
         <span className="text-red-400 font-semibold">0 & 1 Star Watchlist</span>
@@ -200,9 +151,9 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
           </div>
 
           <div className="p-5 rounded-2xl bg-gray-950/80 border border-red-500/30 text-center min-w-[200px]">
-            <div className="text-3xl font-black text-red-400 font-mono">{failedVenues.length}</div>
+            <div className="text-3xl font-black text-red-400 font-mono">{zeroStarVenues.length}</div>
             <div className="text-xs text-gray-300 mt-1 font-medium">Venues on Warning List</div>
-            <div className="text-[10px] text-gray-400 mt-0.5 font-mono">Updated Daily</div>
+            <div className="text-[10px] text-gray-400 mt-0.5 font-mono">Live FSA Records</div>
           </div>
         </div>
       </div>
@@ -239,45 +190,6 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
         </p>
       </div>
 
-      {/* Plain English Guide: What Does 0 & 1 Star Legally Mean? */}
-      <section className="p-7 sm:p-8 rounded-3xl bg-gray-900/60 border border-gray-800 backdrop-blur-sm mb-8 space-y-4">
-        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-red-400 font-semibold">
-          <Info className="w-4 h-4" /> What These Scores Mean
-        </div>
-        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-          Why Did These Food Places Fail Their Inspection?
-        </h2>
-        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
-          When council Environmental Health Officers award a rating of 0 or 1, it means the food business broke key UK food safety regulations. These ratings are not given for minor paperwork mistakes — they represent serious hygiene risks found during the inspection visit.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <div className="p-4 rounded-xl bg-gray-950/70 border border-red-500/30 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30">
-                Rating 0
-              </span>
-              <strong className="text-white text-xs">Urgent Improvement Required</strong>
-            </div>
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              Multiple critical failures found. This can include evidence of pest activity (mice/cockroaches), severe cross-contamination, dangerous food storage temperatures, or complete lack of hot water and sanitation.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-gray-950/70 border border-orange-500/30 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                Rating 1
-              </span>
-              <strong className="text-white text-xs">Major Improvement Necessary</strong>
-            </div>
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              Significant non-compliance with hygiene standards. The kitchen failed in at least one major area, such as structural kitchen damage, dirty equipment, or untrained staff handling high-risk food.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* The Live Watchlist Cards Grid */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -291,65 +203,75 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {failedVenues.map((venue, idx) => (
-            <div
-              key={idx}
-              className="p-6 rounded-2xl bg-gradient-to-r from-red-950/20 via-gray-900/80 to-gray-900/80 border border-red-500/30 hover:border-red-400 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
-            >
-              <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded text-xs font-mono font-black ${
-                    venue.rating === 0 ? 'bg-red-600 text-white' : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                  }`}>
-                    RATING {venue.rating} ({venue.ratingText.toUpperCase()})
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-gray-800 text-gray-300">
-                    {venue.type}
-                  </span>
-                  <span className="text-xs font-mono text-gray-400">
-                    Inspected on {venue.date}
-                  </span>
+        {zeroStarVenues.length > 0 ? (
+          <div className="space-y-4">
+            {zeroStarVenues.map((venue) => (
+              <div
+                key={venue.id}
+                className="p-6 rounded-2xl bg-gradient-to-r from-red-950/20 via-gray-900/80 to-gray-900/80 border border-red-500/30 hover:border-red-400 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+              >
+                <div className="space-y-2 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded text-xs font-mono font-black bg-red-600 text-white">
+                      RATING {venue.ratingValue} (FAILED)
+                    </span>
+                    {venue.businessTypeLabel && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-gray-800 text-gray-300">
+                        {venue.businessTypeLabel}
+                      </span>
+                    )}
+                    {venue.ratingDate && (
+                      <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" /> Inspected: {venue.ratingDate}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-lg font-bold text-white">
+                    {venue.businessName}
+                  </h3>
+
+                  <div className="flex items-center gap-1.5 text-xs text-gray-300">
+                    <MapPin className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                    <span>
+                      {[venue.addressLine1, venue.addressLine2, venue.postcode].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-white">
-                  {venue.name}
-                </h3>
-
-                <div className="flex items-center gap-1.5 text-xs text-gray-300">
-                  <MapPin className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                  <span>{venue.address}, <strong className="text-white font-mono">{venue.postcode}</strong></span>
-                </div>
-
-                <div className="text-xs text-red-300 bg-red-950/40 p-2.5 rounded-xl border border-red-500/20">
-                  <strong>Officer Finding:</strong> {venue.failureReason}
+                <div className="flex flex-col sm:flex-row md:flex-col items-stretch md:items-end gap-2 flex-shrink-0">
+                  <Link
+                    href={`/hygiene-rating/${venue.slug}`}
+                    className="px-4 py-2.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
+                  >
+                    <span>View Full Report & Dials</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/foi"
+                    className="px-4 py-2 rounded-xl bg-gray-950 hover:bg-gray-800 border border-gray-700 text-[11px] font-semibold text-gray-300 transition-all text-center min-h-[36px] flex items-center justify-center"
+                  >
+                    Request Council Notes
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex flex-col sm:flex-row md:flex-col items-stretch md:items-end gap-2 flex-shrink-0">
-                <Link
-                  href={`/hygiene-rating/${venue.slug}`}
-                  className="px-4 py-2.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-red-200 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
-                >
-                  <span>View Full Report & Dials</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <Link
-                  href="/foi"
-                  className="px-4 py-2 rounded-xl bg-gray-950 hover:bg-gray-800 border border-gray-700 text-[11px] font-semibold text-gray-300 transition-all text-center min-h-[36px] flex items-center justify-center"
-                >
-                  Request Council Notes
-                </Link>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-center space-y-2">
+            <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-400 mb-2">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
-          ))}
-        </div>
+            <h3 className="text-base font-bold text-white">No 0 or 1 Star Venues Found!</h3>
+            <p className="text-xs text-gray-300 max-w-md mx-auto">
+              Food businesses in {councilName} are demonstrating high hygiene standards with zero active 0-star notices recorded in the recent sync.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Consumer Advice & Business Owner Information Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        
-        {/* Box 1: What to do if you suspect food poisoning */}
         <div className="p-7 rounded-3xl bg-gray-900/60 border border-gray-800 space-y-3">
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
             <ShieldAlert className="w-4 h-4" /> Advice for Diners
@@ -360,14 +282,13 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Box 2: For Food Business Owners (Right to Reply) */}
         <div className="p-7 rounded-3xl bg-gray-900/60 border border-gray-800 space-y-3">
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold">
             <RefreshCw className="w-4 h-4" /> For Business Owners
           </div>
           <h3 className="text-base font-bold text-white">Fixed Your Issues?</h3>
           <p className="text-xs text-gray-300 leading-relaxed">
-            If you have made all required repairs and cleaning improvements, you can request a paid re-inspection from {councilName} Council to get an updated score. You can also submit a free statutory Right to Reply to explain your improvements.
+            If you have made all required repairs and cleaning improvements, you can request a paid re-inspection from {councilName} Council to get an updated score. You can also submit a free statutory Right to Reply.
           </p>
           <div className="pt-1">
             <Link href="/business-support" className="text-xs font-bold text-cyan-400 hover:underline inline-block min-h-[32px]">
@@ -375,7 +296,6 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
             </Link>
           </div>
         </div>
-
       </div>
 
       {/* Animated Accordion FAQ Section */}
@@ -387,7 +307,6 @@ export default async function ZeroStarWatchlistPage({ params }: PageProps) {
           items={watchlistFaqs}
         />
       </div>
-
     </div>
   );
 }

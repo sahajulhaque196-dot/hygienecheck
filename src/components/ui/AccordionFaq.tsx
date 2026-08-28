@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Plus, Minus, HelpCircle } from 'lucide-react';
@@ -14,6 +14,7 @@ interface AccordionFaqProps {
   badge?: string;
   items: FaqItem[];
   className?: string;
+  renderSchema?: boolean;
 }
 
 export const AccordionFaq: React.FC<AccordionFaqProps> = ({
@@ -22,6 +23,7 @@ export const AccordionFaq: React.FC<AccordionFaqProps> = ({
   badge = "Common Questions",
   items,
   className = "",
+  renderSchema = true,
 }) => {
   const [openIndices, setOpenIndices] = useState<number[]>([0]);
 
@@ -49,10 +51,12 @@ export const AccordionFaq: React.FC<AccordionFaqProps> = ({
   return (
     <section className={`pt-10 sm:pt-12 pb-4 sm:pb-6 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>
       {/* Schema.org FAQPage for Google Rich Snippets */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {renderSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
 
       {/* Section Header */}
       <div className="text-center mb-8">

@@ -18,6 +18,10 @@ dist
 .env.test.local
 .env.production.local
 
+# Private Credentials File (NEVER push to GitHub)
+CREDENTIALS.md
+*.credentials.md
+
 # Debug & Execution Logs
 npm-debug.log*
 yarn-debug.log*

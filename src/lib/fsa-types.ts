@@ -63,17 +63,20 @@ export interface VenueDetail {
   address: string;
   city: string;
   postcode: string;
+  outcode: string;
   ratingValue: string;
   ratingText: string;
   ratingDate: string;
   formattedDate: string;
   council: string;
   councilCode: string;
+  councilSlug: string;
   councilEmail: string;
   subScores: SubScoreDetail;
   failureReason: string | null;
   timelineRecords: InspectionRecord[];
   nearbyCleanVenues: NearbyVenue[];
+  schemeType?: 'FHRS' | 'FHIS';
 }
 
 export function formatInspectionDate(dateStr?: string): string {
@@ -114,7 +117,10 @@ export function checkIsGoodRating(rating?: string): boolean {
 export function parseVenueSlug(rawSlug: string): {
   businessName: string;
   postcode: string;
+  outcode: string;
   fhrsid: string;
+  councilSlug: string;
+  councilName: string;
 } {
   let cleanSlug = '';
   try {
@@ -129,16 +135,50 @@ export function parseVenueSlug(rawSlug: string): {
 
   // Check if previous 2 parts resemble a UK postcode (e.g., 'wc2e', '8pb')
   let postcode = 'UK';
+  let outcode = 'UK';
   if (parts.length >= 2) {
     const p2 = parts[parts.length - 1];
     const p1 = parts[parts.length - 2];
     if (/^[a-z0-9]{2,4}$/i.test(p1) && /^[a-z0-9]{3}$/i.test(p2)) {
-      postcode = `${p1.toUpperCase()} ${p2.toUpperCase()}`;
+      outcode = p1.toUpperCase();
+      postcode = `${outcode} ${p2.toUpperCase()}`;
       parts.splice(parts.length - 2, 2);
     }
   } else if (parts.length === 1 && /^[a-z]{1,2}\d{1,2}[a-z]?$/i.test(parts[0])) {
-    postcode = parts[0].toUpperCase();
+    outcode = parts[0].toUpperCase();
+    postcode = outcode;
     parts.pop();
+  }
+
+  // Detect council from outcode or slug keywords
+  let councilSlug = 'london';
+  let councilName = 'Westminster City Council';
+
+  const outcodeLower = outcode.toLowerCase();
+  if (outcodeLower.startsWith('b') && !outcodeLower.startsWith('bs') && !outcodeLower.startsWith('bt') && !outcodeLower.startsWith('ba')) {
+    councilSlug = 'birmingham';
+    councilName = 'Birmingham City Council';
+  } else if (outcodeLower.startsWith('m') && !outcodeLower.startsWith('me') && !outcodeLower.startsWith('mk')) {
+    councilSlug = 'manchester';
+    councilName = 'Manchester City Council';
+  } else if (outcodeLower.startsWith('ls')) {
+    councilSlug = 'leeds';
+    councilName = 'Leeds City Council';
+  } else if (outcodeLower.startsWith('l') && !outcodeLower.startsWith('le') && !outcodeLower.startsWith('ln') && !outcodeLower.startsWith('la') && !outcodeLower.startsWith('ll')) {
+    councilSlug = 'liverpool';
+    councilName = 'Liverpool City Council';
+  } else if (outcodeLower.startsWith('g')) {
+    councilSlug = 'glasgow';
+    councilName = 'Glasgow City Council';
+  } else if (outcodeLower.startsWith('eh')) {
+    councilSlug = 'edinburgh';
+    councilName = 'City of Edinburgh Council';
+  } else if (outcodeLower.startsWith('cf')) {
+    councilSlug = 'cardiff';
+    councilName = 'Cardiff Council';
+  } else if (outcodeLower.startsWith('nw') || outcodeLower.startsWith('n1')) {
+    councilSlug = 'camden';
+    councilName = 'Camden London Borough Council';
   }
 
   const businessName = parts
@@ -148,6 +188,9 @@ export function parseVenueSlug(rawSlug: string): {
   return {
     businessName,
     postcode,
+    outcode: outcode !== 'UK' ? outcode : 'SW1A',
     fhrsid,
+    councilSlug,
+    councilName,
   };
 }

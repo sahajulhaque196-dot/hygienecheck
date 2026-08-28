@@ -13,15 +13,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'HygieneCheck.uk | Official UK Food Hygiene Ratings & Inspection Scores',
-  description: 'Search official food hygiene inspection ratings for over 520,000 UK restaurants, takeaways, cafes, and care homes. View sub-scores, 5-year history, and 0-star warnings updated daily from council records.',
-  keywords: [
-    'food hygiene ratings UK',
-    'check takeaway food hygiene',
-    'official scores on the doors',
-    'food standards agency ratings',
-    'restaurant inspection scores UK',
-    '0 star hygiene watchlist',
-  ],
+  description: 'Check before you eat. Instant official FSA hygiene ratings for 520,000+ UK takeaways & restaurants — see sub-scores, inspection dates & 0-star warnings. Free.',
   alternates: {
     canonical: 'https://hygienecheck.uk',
   },
@@ -95,8 +87,9 @@ export default function HomePage() {
               {/* Main Search Input Form */}
               <div className="pt-2 max-w-xl mx-auto lg:mx-0">
                 <form 
-                  action="/authority/london" 
-                  className="relative flex items-center p-2 rounded-2xl bg-gray-900/90 border border-gray-700/80 shadow-2xl backdrop-blur-xl focus-within:border-emerald-500/80 transition-all group cursor-pointer"
+                  action="/search" 
+                  method="GET"
+                  className="relative flex items-center p-2 rounded-2xl bg-gray-900/90 border border-gray-700/80 shadow-2xl backdrop-blur-xl focus-within:border-emerald-500/80 transition-all group"
                 >
                   <Search className="w-5 h-5 text-emerald-400 ml-3 mr-2 flex-shrink-0" />
                   <input
