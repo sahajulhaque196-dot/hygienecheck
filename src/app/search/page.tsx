@@ -7,6 +7,13 @@ import { searchEstablishments } from '@/lib/db/queries';
 export const metadata: Metadata = {
   title: 'Search UK Food Hygiene Ratings | HygieneCheck.uk',
   description: 'Search official food hygiene inspection ratings for over 520,000 UK restaurants, takeaways, cafes, and food businesses.',
+  alternates: {
+    canonical: 'https://hygienecheck.uk/search',
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 interface SearchPageProps {

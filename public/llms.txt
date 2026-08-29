@@ -1,0 +1,21 @@
+# HygieneCheck.uk — Official UK Food Hygiene Intelligence
+> The open, authoritative index of Food Standards Agency (FSA) inspection ratings, 3-pillar sub-scores, and 0-star public health watchlists for over 520,000 UK food establishments.
+
+## Overview
+HygieneCheck.uk provides free public access to official environmental health food safety inspection records across all 363 UK local authorities in England, Wales, Northern Ireland (FHRS 0-5 scale), and Scotland (FHIS Pass / Improvement Required scheme).
+
+## Key Public Resources
+- **Homepage & Instant Search:** https://hygienecheck.uk
+- **UK Councils Directory (363 Local Authorities):** https://hygienecheck.uk/authority
+- **0 & 1 Star Watchlists:** https://hygienecheck.uk/authority/{council-slug}/0-star
+- **Postcode District Directory:** https://hygienecheck.uk/postcode/{outcode}
+- **FOI Report Generator:** https://hygienecheck.uk/foi
+- **Business Support & Re-inspections:** https://hygienecheck.uk/business-support
+
+## Data Source & Licensing
+All ratings, scores, and inspection records are synchronized daily from the Food Standards Agency (FSA) and local municipal health registers under the Open Government Licence v3.0 (OGL).
+
+## Scoring Science (The 3 FSA Pillars)
+1. **Food Hygiene & Safety:** Temperature control, cross-contamination, safe handling.
+2. **Structural Cleanliness & Condition:** Layout, pest proofing, ventilation, handwashing facilities.
+3. **Confidence in Management:** Written food safety management systems (SFBB), staff training, HACCP tracking.
